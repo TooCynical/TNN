@@ -4,8 +4,8 @@
 # October 2017
 # University of Bonn
 #
-# Perzpetron.py
-# Implementation of a Perzeptron without hidden layers.
+# Perzepetron.py
+# Implementation of a perzeptron without hidden layers.
 
 
 import numpy as np
@@ -40,7 +40,7 @@ def parse_training_file(filepath):
         Y = np.fromstring(lines[2 + 2*i], sep=" ")
         if X.shape[0] != N or Y.shape[0] != M:
             raise ValueError("Training file dimension mismatch. \n")
-        patterns.append(Pattern(X, Y))
+        patterns.append(pattern(X, Y))
     
     return patterns
     
@@ -51,8 +51,8 @@ def heaviside(x):
         return y >= x
     return out
 
-# Implementation of a dual layer Perzeptron with BIAS.
-# The Perzeptron can either be constructed from a weight matrix, or from
+# Implementation of a dual layer perzeptron with BIAS.
+# The perzeptron can either be constructed from a weight matrix, or from
 # two integers N, M. In the latter case, an (N+1)xM weight matrix will be generated
 # at random (entries picked uniformly at random from [-0.5, 0.5]).
 # The first column of the weight matrix is reserved for the BIAS.
@@ -60,7 +60,7 @@ def heaviside(x):
 #     An initial learning factor (default = 0.1),
 #     A transfer function (default is the heaviside function centered at 0).
 #
-# Callable functions for a Perzeptron P are:
+# Callable functions for a perzeptron P are:
 #     P(X)                      - evaluate P at X for an input vector X of the right size.
 #     P.train(patterns)       - train P by the Widrow-Hoff learning rule using a list of training patterns.
 #     P.verify(patterns)      - verify that P's output matches the given patterns.
@@ -68,7 +68,7 @@ def heaviside(x):
 #                                 of a file containing an array. This may change the dimensions of P.
 #     P.set_learning_factor(b)  - manually set P's learn factor.
 #      
-class Perzeptron:
+class perzeptron:
     def __init__(self, N=1, M=1, learning_factor=0.1, transfer=heaviside(0)):
         self.__init_weights_from_dimensions(N, M)
         self.__init_transfer(transfer)
@@ -81,7 +81,7 @@ class Perzeptron:
         return self.transfer_vec(np.dot(self.W[:, 1:], X) + self.W[:, 0]).flatten()
 
         
-    # Train the Perzeptron x times using the Widrow-Hoff rule by providing a list of patterns
+    # Train the perzeptron x times using the Widrow-Hoff rule by providing a list of patterns
     # or a filepath to a training data file.
     def train(self, patterns, x=1):
         if isinstance(patterns, str):
@@ -90,7 +90,7 @@ class Perzeptron:
             self.__train(patterns)
 
 
-    # Assert that the Perzeptron is consistent with a list of patterns.
+    # Assert that the perzeptron is consistent with a list of patterns.
     def verify(self, patterns):
         if isinstance(patterns, str):
             patterns = parse_training_file(patterns)
@@ -103,7 +103,7 @@ class Perzeptron:
         return True
                 
     
-    # Set the weights of the Perzeptron either by providing an array or the
+    # Set the weights of the perzeptron either by providing an array or the
     # filepath of a file containing an array.            
     def set_weights(self, new_W):
         if isinstance(new_W, str):
@@ -128,7 +128,7 @@ class Perzeptron:
             raise ValueError("New weight dimension mismatch. \n")
  
 
-   # Train the Perzeptron once using the Widrow-Hoff rule and a list of patterns.
+   # Train the perzeptron once using the Widrow-Hoff rule and a list of patterns.
     def __train(self, patterns):
         for P in patterns:
             if P.N == self.N and P.M == self.M:
@@ -139,7 +139,7 @@ class Perzeptron:
     
     # Apply the Widrow-Hoff rule to all weights and the BIAS for a single pattern.            
     def __train_pattern(self, P):
-        # Compute Perzeptron output.
+        # Compute perzeptron output.
         Y = self(P.X)
         
         # Update weights.
@@ -152,7 +152,7 @@ class Perzeptron:
             self.W[m][0] += self.learning_factor * (P.Y[m] - Y[m]) * 1.0
             
             
-     # Verify given pattern is consistent with Perzeptron.        
+     # Verify given pattern is consistent with perzeptron.        
     def __verify_pattern(self, P):
         return (self(P.X) == P.Y).all()
 
@@ -165,7 +165,7 @@ class Perzeptron:
             self.M = M
             self.W = np.random.rand(M, N + 1) - 0.5
         else:
-            raise ValueError("Perzeptron dimensions exceed bounds. \n")
+            raise ValueError("perzeptron dimensions exceed bounds. \n")
 
 
     def __init_learning_factor(self, learning_factor):
@@ -178,13 +178,13 @@ class Perzeptron:
 
             
     def __repr__(self):
-        return "Perzeptron (" + str(self.N) + "->" + str(self.M) \
+        return "perzeptron (" + str(self.N) + "->" + str(self.M) \
                + "), learning factor: " + str(self.learning_factor) \
                + ",\nWeights: \n" + str(self.W)
 
                
 # A training pattern consisting of an input vector and a desired output vector.
-class Pattern:
+class pattern:
     # Construct a pattern from input and desired output.
     def __init__(self, X, Y):
         if X.ndim == 1 and Y.ndim == 1:
@@ -193,7 +193,7 @@ class Pattern:
             self.N = X.shape[0]
             self.M = Y.shape[0]
         else:
-            raise ValueError("Pattern should be constructed from two vectors. \n")
+            raise ValueError("pattern should be constructed from two vectors. \n")
     
     
     # Return whether the input and output of this pattern are binary.
@@ -203,35 +203,35 @@ class Pattern:
            
 # Demonstrate this modules functionality.
 def demo():
-        print "Initializing Perzeptron on 3 inputs and 2 outputs:"
-        p = Perzeptron(3, 2, transfer=heaviside(0))
+        print "Initializing perzeptron on 3 inputs and 2 outputs:"
+        p = perzeptron(3, 2, transfer=heaviside(0))
         print p
         
-        print "Training Perzeptron 50 times using numpy arrays representing (!XOR, XOR) as patterns:"
-        Pattern1 = Pattern(np.array([0, 0, 0]), np.array([1, 0]))
-        Pattern2 = Pattern(np.array([0, 0, 1]), np.array([0, 1]))
-        Pattern3 = Pattern(np.array([0, 1, 0]), np.array([0, 1]))
-        Pattern4 = Pattern(np.array([0, 1, 1]), np.array([1, 0]))
-        patterns = [Pattern1, Pattern2, Pattern3, Pattern4]        
+        print "Training perzeptron 50 times using numpy arrays representing (!XOR, XOR) as patterns:"
+        pattern1 = pattern(np.array([0, 0, 0]), np.array([1, 0]))
+        pattern2 = pattern(np.array([0, 0, 1]), np.array([0, 1]))
+        pattern3 = pattern(np.array([0, 1, 0]), np.array([0, 1]))
+        pattern4 = pattern(np.array([0, 1, 1]), np.array([1, 0]))
+        patterns = [pattern1, pattern2, pattern3, pattern4]        
         p.train(patterns, 50)
         print p
     
-        print "Verifying that Perzeptron now implements these patterns (it shouldn't):"
+        print "Verifying that perzeptron now implements these patterns (it shouldn't):"
         print p.verify(patterns)
     
-        print "Training Perzeptron 100 times using patterns in /train_3_2_OR.dat representing (OR, OR):"
+        print "Training perzeptron 100 times using patterns in /train_3_2_OR.dat representing (OR, OR):"
         patterns = parse_training_file("train_3_2_OR.dat")
         p.train(patterns, 100)
         print p
         
-        print "Verifying that Perzeptron now implements the patterns in /train_3_2_OR.dat (it should):"
+        print "Verifying that perzeptron now implements the patterns in /train_3_2_OR.dat (it should):"
         print p.verify(patterns)
     
-        print "Setting Perzeptron weights using a numpy array:"
+        print "Setting perzeptron weights using a numpy array:"
         p.set_weights(np.array([[-0.2, 0.1, 0.3, 0.3], [0.1, 1, 2, 3]]))
         print p
     
-        print "Setting Perzeptron weight from /weights.dat:"
+        print "Setting perzeptron weight from /weights.dat:"
         p.set_weights("weights.dat")
         print p
 

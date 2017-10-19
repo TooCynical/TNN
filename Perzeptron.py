@@ -1,4 +1,13 @@
-# -*- coding: utf-8 -*-
+# Lucas Slot,   lfh.slot@gmail.com  (2984451).
+# Julian W.,    jjwarg@gmail.com    (???????)
+#
+# October 2017
+# University of Bonn
+#
+# Perzpetron.py
+# Implementation of a Perzeptron without hidden layers.
+
+
 import numpy as np
 
 N_MAX = 101
@@ -44,46 +53,47 @@ def heaviside(x):
 
 # Implementation of a dual layer Perzeptron with BIAS.
 # The Perzeptron can either be constructed from a weight matrix, or from
-# two integers N, M. In the latter case, an NxM weight matrix will be generated
+# two integers N, M. In the latter case, an (N+1)xM weight matrix will be generated
 # at random (entries picked uniformly at random from [-0.5, 0.5]).
+# The first column of the weight matrix is reserved for the BIAS.
 # Optional input for the constructor are:
-#     An initial BIAS (default = 0),
 #     An initial learning factor (default = 0.1),
 #     A transfer function (default is the heaviside function centered at 0).
 #
 # Callable functions for a Perzeptron P are:
-#     P(X)                  - evaluate P at X for an input vector X of the right size.
-#     P.train([patterns])   - train P by the Widrow-Hoff learning rule using a list of training patterns.
-#     P.verify([patterns])  - verify that P's output matches the given patterns.
-#     P.set_weights(W)      - manually set P's weights by providing an array or the path
-#                             of a file containing an array. This may change the dimensions of P.
-#     P.set_BIAS(b)         - manually set P's BIAS.
-#     P.set_learn_factor(b) - manually set P's learn factor.
+#     P(X)                      - evaluate P at X for an input vector X of the right size.
+#     P.train(patterns)       - train P by the Widrow-Hoff learning rule using a list of training patterns.
+#     P.verify(patterns)      - verify that P's output matches the given patterns.
+#     P.set_weights(W)          - manually set P's weights by providing an array or the path
+#                                 of a file containing an array. This may change the dimensions of P.
+#     P.set_learning_factor(b)  - manually set P's learn factor.
 #      
 class Perzeptron:
-    def __init__(self, N=1, M=1, W=None, BIAS=0.0, learn_factor=0.1, transfer=heaviside(0)):
-        if W is None:
-            self.__init_weights_from_dimensions(N, M)
-        else:
-            self.__init_weights_from_array(W)
-
+    def __init__(self, N=1, M=1, learning_factor=0.1, transfer=heaviside(0)):
+        self.__init_weights_from_dimensions(N, M)
         self.__init_transfer(transfer)
-        self.__init_BIAS(BIAS)
-        self.__init_learning_factor(learn_factor)
+        self.__init_learning_factor(learning_factor)
 
 
-    # Evaluate the perzeptron for given input.
+    # Evaluate the perzeptron for given input by applying the transfer function
+    # to each entry of W * [1 X]^T.
     def __call__(self, X):
-       return self.transfer_vec(np.dot(self.W, X) + self.BIAS)
+        return self.transfer_vec(np.dot(self.W[:, 1:], X) + self.W[:, 0]).flatten()
 
         
-    # Train the perzeptron x times using the Widrow-Hoff rule by providing a list of patterns.
+    # Train the Perzeptron x times using the Widrow-Hoff rule by providing a list of patterns
+    # or a filepath to a training data file.
     def train(self, patterns, x=1):
+        if isinstance(patterns, str):
+            patterns = parse_training_file(patterns)
         for dummy in xrange(x):
             self.__train(patterns)
 
-    
+
+    # Assert that the Perzeptron is consistent with a list of patterns.
     def verify(self, patterns):
+        if isinstance(patterns, str):
+            patterns = parse_training_file(patterns)
         for P in patterns:
             if P.N == self.N and P.M == self.M:
                 if not self.__verify_pattern(P):
@@ -101,32 +111,31 @@ class Perzeptron:
         else:
             self.__set_weights_from_array(new_W)
 
-
-    def set_BIAS(self, new_BIAS):
-        self.BIAS = new_BIAS
-
         
-    def set_learning_factor(self, new_learn_factor):
-        self.learn_factor = new_learn_factor
+    def set_learning_factor(self, new_learning_factor):
+        self.learning_factor = new_learning_factor
 
         
     def __set_weights_from_array(self, new_W):
-        new_N = new_W.shape[0]
+        new_M = new_W.shape[0]
         if len(new_W.shape) >= 2:
-            new_M = new_W.shape[1]
+            new_N = new_W.shape[1]
         else:
-            new_M = 1
-        if self.N == new_N and self.M == new_M:
+            new_N = 1
+        if self.N + 1 == new_N and self.M == new_M:
             self.W = new_W
         else:
             raise ValueError("New weight dimension mismatch. \n")
-    # Train the Perzeptron once using the Widrow-Hoff rule and a list of patterns.
+ 
+
+   # Train the Perzeptron once using the Widrow-Hoff rule and a list of patterns.
     def __train(self, patterns):
         for P in patterns:
             if P.N == self.N and P.M == self.M:
                 self.__train_pattern(P)
             else:
                 raise ValueError("Training input dimension mismatch. \n")    
+
     
     # Apply the Widrow-Hoff rule to all weights and the BIAS for a single pattern.            
     def __train_pattern(self, P):
@@ -136,23 +145,16 @@ class Perzeptron:
         # Update weights.
         for n in xrange(self.N):
             for m in xrange(self.M):
-                self.W[m][n] += self.learn_factor * (P.Y[m] - Y[m]) * P.X[n]
+                self.W[m][n+1] += self.learning_factor * (P.Y[m] - Y[m]) * P.X[n]
                 
         # Update BIAS.
         for m in xrange(self.M):
-            self.BIAS += self.learn_factor * (P.Y[m] - Y[m]) * 1.0
+            self.W[m][0] += self.learning_factor * (P.Y[m] - Y[m]) * 1.0
             
             
      # Verify given pattern is consistent with Perzeptron.        
     def __verify_pattern(self, P):
         return (self(P.X) == P.Y).all()
-
-
-    # Initialize weights from a provided array and set N, M accordingly.
-    def __init_weights_from_array(self, W):
-        self.W = W
-        self.N = W.shape[0]
-        self.M = W.shape[1]
 
 
     # Initialize weights as an NxM matrix of values picked uniformly at random
@@ -161,17 +163,13 @@ class Perzeptron:
         if N <= N_MAX and M <= M_MAX:
             self.N = N
             self.M = M
-            self.W = np.random.rand(M, N) - 0.5
+            self.W = np.random.rand(M, N + 1) - 0.5
         else:
             raise ValueError("Perzeptron dimensions exceed bounds. \n")
 
-            
-    def __init_BIAS(self, BIAS):
-        self.BIAS = BIAS
 
-            
-    def __init_learning_factor(self, learn_factor):
-        self.learn_factor = learn_factor
+    def __init_learning_factor(self, learning_factor):
+        self.learning_factor = learning_factor
 
 
     def __init_transfer(self, transfer):                
@@ -181,10 +179,10 @@ class Perzeptron:
             
     def __repr__(self):
         return "Perzeptron (" + str(self.N) + "->" + str(self.M) \
-               + "), learning factor: " + str(self.learn_factor) \
-               + ",\nWeights: \n" + str(self.W) + "\n" \
-               + "BIAS: " + str(self.BIAS)
+               + "), learning factor: " + str(self.learning_factor) \
+               + ",\nWeights: \n" + str(self.W)
 
+               
 # A training pattern consisting of an input vector and a desired output vector.
 class Pattern:
     # Construct a pattern from input and desired output.
@@ -202,34 +200,41 @@ class Pattern:
     def is_binary(self):
         return ((self.X == 0) | (self.X == 1)).all() and ((self.Y == 0) | (self.Y == 1)).all()
 
+           
+# Demonstrate this modules functionality.
+def demo():
+        print "Initializing Perzeptron on 3 inputs and 2 outputs:"
+        p = Perzeptron(3, 2, transfer=heaviside(0))
+        print p
+        
+        print "Training Perzeptron 50 times using numpy arrays representing (!XOR, XOR) as patterns:"
+        Pattern1 = Pattern(np.array([0, 0, 0]), np.array([1, 0]))
+        Pattern2 = Pattern(np.array([0, 0, 1]), np.array([0, 1]))
+        Pattern3 = Pattern(np.array([0, 1, 0]), np.array([0, 1]))
+        Pattern4 = Pattern(np.array([0, 1, 1]), np.array([1, 0]))
+        patterns = [Pattern1, Pattern2, Pattern3, Pattern4]        
+        p.train(patterns, 50)
+        print p
+    
+        print "Verifying that Perzeptron now implements these patterns (it shouldn't):"
+        print p.verify(patterns)
+    
+        print "Training Perzeptron 100 times using patterns in /train_3_2_OR.dat representing (OR, OR):"
+        patterns = parse_training_file("train_3_2_OR.dat")
+        p.train(patterns, 100)
+        print p
+        
+        print "Verifying that Perzeptron now implements the patterns in /train_3_2_OR.dat (it should):"
+        print p.verify(patterns)
+    
+        print "Setting Perzeptron weights using a numpy array:"
+        p.set_weights(np.array([[-0.2, 0.1, 0.3, 0.3], [0.1, 1, 2, 3]]))
+        print p
+    
+        print "Setting Perzeptron weight from /weights.dat:"
+        p.set_weights("weights.dat")
+        print p
+
 
 if __name__ == "__main__":
-    p = Perzeptron(3, 1, transfer=heaviside(0))
-    
-#    X1 = np.array([0, 0])
-#    Y1 = np.array([0])
-#    X2 = np.array([0, 1])
-#    Y2 = np.array([0])
-#    X3 = np.array([1, 0])
-#    Y3 = np.array([0])
-#    X4 = np.array([1, 1])
-#    Y4 = np.array([1])
-#    
-#    P1 = Pattern(X1, Y1)
-#    P2 = Pattern(X2, Y2)
-#    P3 = Pattern(X3, Y3)
-#    P4 = Pattern(X4, Y4)
-    
-#    for x in xrange(100):
-#        p.train([P1, P2, P3, P4])
-    
-    patterns = parse_training_file("train_3_1_OR.dat")
-    p.train(patterns, 100)
-    print p.verify(patterns)
-    print p
-
-    p.set_weights(np.array([0.1, 0.3, 0.3]))
-    print p
-
-    p.set_weights("weights.dat")
-    print p
+    demo()

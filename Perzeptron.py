@@ -1,47 +1,37 @@
 # Lucas Slot,   lfh.slot@gmail.com  (2984451).
 # Julian W.,    jjwarg@gmail.com    (???????)
 #
-# October 2017
 # University of Bonn
+# October 2017
 #
 # Perzepetron.py
-# Implementation of a perzeptron without hidden layers.
+# Implementation of a perzeptron without hidden layers with learning.
 
 
 import numpy as np
+import re
 
 N_MAX = 101
 M_MAX = 30
 T_MAX = 201
 
 # Parse a file containing training patterns in the following format:
-#   - The first line should contain three integers N, M, t, where N, M
-#     are the dimensions of the training input / output, respectively, and
-#     t is the total amount of training patterns.
-#   - For each pattern, two lines should be provided, the first one containing
-#     the entries of the training input, and the second one the entries of the
-#     training output, seperated by spaces.
-#
+# For each pattern, one line should be provided, containing first the entries
+# of the input vector, separated by a single space, then at least 2 spaces,
+# followed by the entries of the desired output vector, separated by a single space.
 # The behaviour of this function is undefined for wrongly formatted input files!
 def parse_training_file(filepath):
     file = open(filepath)
     lines = file.readlines()
-    first_line_ints = [int(x) for x in lines[0].split(" ")]
-    N = first_line_ints[0]
-    M = first_line_ints[1]
-    t = first_line_ints[2]
-    
-    if t > T_MAX:
-        raise ValueError("Amount of patterns in data file exceeds bounds. \n")
 
     patterns = []
-    for i in xrange(t):
-        X = np.fromstring(lines[1 + 2*i], sep=" ")
-        Y = np.fromstring(lines[2 + 2*i], sep=" ")
-        if X.shape[0] != N or Y.shape[0] != M:
-            raise ValueError("Training file dimension mismatch. \n")
-        patterns.append(pattern(X, Y))
-    
+    for line in lines:
+        spl = re.split("  +", line)
+        if len(spl) < 2:
+            spl = re.split("\t", line)
+        X = np.fromstring(spl[0], sep=" ")
+        Y = np.fromstring(spl[1], sep=" ")
+        patterns.append(pattern(X, Y))    
     return patterns
     
 
@@ -180,7 +170,7 @@ class perzeptron:
     def __repr__(self):
         return "perzeptron (" + str(self.N) + "->" + str(self.M) \
                + "), learning factor: " + str(self.learning_factor) \
-               + ",\nWeights: \n" + str(self.W)
+               + ",\nWeights (first column is BIAS): \n" + str(self.W)
 
                
 # A training pattern consisting of an input vector and a desired output vector.
@@ -201,8 +191,9 @@ class pattern:
         return ((self.X == 0) | (self.X == 1)).all() and ((self.Y == 0) | (self.Y == 1)).all()
 
            
-# Demonstrate this modules functionality.
+# Demonstrate this module's functionality.
 def demo():
+        print "Starting perzeptron demo:" 
         print "Initializing perzeptron on 3 inputs and 2 outputs:"
         p = perzeptron(3, 2, transfer=heaviside(0))
         print p
@@ -219,6 +210,7 @@ def demo():
         print "Verifying that perzeptron now implements these patterns (it shouldn't):"
         print p.verify(patterns)
     
+        print
         print "Training perzeptron 100 times using patterns in /train_3_2_OR.dat representing (OR, OR):"
         patterns = parse_training_file("train_3_2_OR.dat")
         p.train(patterns, 100)
@@ -227,6 +219,7 @@ def demo():
         print "Verifying that perzeptron now implements the patterns in /train_3_2_OR.dat (it should):"
         print p.verify(patterns)
     
+        print
         print "Setting perzeptron weights using a numpy array:"
         p.set_weights(np.array([[-0.2, 0.1, 0.3, 0.3], [0.1, 1, 2, 3]]))
         print p
@@ -234,6 +227,19 @@ def demo():
         print "Setting perzeptron weight from /weights.dat:"
         p.set_weights("weights.dat")
         print p
+        
+        print
+        print "Initializing perzeptron on 5 inputs and 2 outputs:"
+        q = perzeptron(5, 2, transfer=heaviside(0))
+        print q        
+        
+        print "Training perzeptron 100 times using patterns in /PA-A-train.dat:"
+        patterns = parse_training_file("PA-A-train.dat")
+        q.train(patterns, 100)
+        print q
+        
+        print "Verifying that perzeptron now implements the patterns in /PA-A-train.dat (it should):"
+        print q.verify(patterns)
 
 
 if __name__ == "__main__":

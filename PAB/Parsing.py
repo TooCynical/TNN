@@ -9,6 +9,8 @@ def parse_training_file(filepath):
 
     patterns = []
     for line in lines:
+        if line[0] == "#":
+            continue
         spl = re.split("  +", line)
         if len(spl) < 2:
             spl = re.split("\t", line)

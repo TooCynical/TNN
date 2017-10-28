@@ -39,4 +39,4 @@ g = logistic()
 logistic_transfer = TransferFunction(g, lambda x: (1 - g(x)) * g(x))
 
 h = identity()
-identity_transfer = TransferFunction(h, lambda x: x)
+identity_transfer = TransferFunction(h, lambda x: 1)

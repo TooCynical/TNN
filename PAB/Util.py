@@ -1,4 +1,15 @@
 import numpy as np
+import random
+
+def uniform_sampler(x_min, x_max):
+	def out():
+		return random.uniform(x_min, x_max)
+	return out
+
+
+# Return half of the quadratic distance X - Y.
+def quadratic_error(X, Y):
+    return 0.5 * np.sum((X - Y)**2)
 
 
 class TransferFunction:
@@ -31,7 +42,7 @@ def identity(xshift=0.0, yshift=0.0, xscale=1.0, yscale=1.0):
 	return out
 
 
-# Standard transfer function. You can make more, but have to set the derivative manually!
+# Standard transfer functions. You can make more, but have to set the derivative manually!
 f = tanh()
 tanh_transfer = TransferFunction(f, lambda x: 1 - f(x)**2)
 

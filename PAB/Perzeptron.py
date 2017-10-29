@@ -14,13 +14,13 @@ import random
 
 import Util
 
-N_MAX = 101
+N_MAX = 1001
 M_MAX = 30
-T_MAX = 201
+T_MAX = 1001
 
 
 class PerzLayer:
-    def __init__(self, N=1, M=1, learning_factor=0.01, transfer=Util.tanh_transfer, sampler=Util.uniform_sampler(-2, 2)):
+    def __init__(self, N=1, M=1, learning_factor=0.05, transfer=Util.tanh_transfer, sampler=Util.uniform_sampler(-2, 2)):
         self.__init_transfer(transfer)
         self.__init_learning_factor(learning_factor)
         self.__init_sampler(sampler)
@@ -101,7 +101,7 @@ class PerzLayer:
 
 
 class Perzeptron:
-    def __init__(self, dims=[1, 1], etas=None, transfers=None):
+    def __init__(self, dims=[1, 1]):
         self.__init_layers_from_dimensions(dims)
 
 
@@ -128,6 +128,7 @@ class Perzeptron:
         for layer in self.layers:
             layer.apply_pending_weights()
 
+
     # Find the average and maximum error for a list of patterns.    
     def verify(self, patterns):
         if isinstance(patterns, str):
@@ -141,6 +142,16 @@ class Perzeptron:
                 max_error = total_error
 
         return total_error / len(patterns), max_error
+
+
+    # Set learning factor of the ith layer.
+    def set_learning_factor(self, learning_factor, i):
+        self.layers[i].set_learning_factor(learning_factor)
+
+
+    # Set transfer function of the ith layer.
+    def set_transfer_function(self, transfer_function, i):
+        self.layers[i].set_transfer_function(transfer_function)
 
 
     # Given a list [N1, N2, N3, ...] of dimensions, create layers N1 -> N2 -> ...
@@ -256,14 +267,28 @@ def parse_training_file(filepath):
         patterns.append(Pattern(X, Y))    
     return patterns
 
+def demo():
+
+    random.seed(12345)
+
+    print "Initializing Perzepron: "
+    q = Perzeptron([4, 8, 2])
+    print q
+    
+    print "Training perzeptron with patterns in ./training.dat 250 times..."
+
+    plotfile = open("learning.curve", 'w')
+    for dummy in xrange(250):
+        q.train("training.dat")
+        error = q.verify("training.dat")[0]
+        plotfile.write(str(error) + "\n")
+    print "Training done, learning curve written to ./learning.curve."
+    print "Verifying perzeptron using patterns in ./test.dat:"
+    avg_error, max_error = q.verify("test.dat")
+
+    print "Average quadratic error: " + str(avg_error) 
+    print "Maximum quadratic error: " + str(max_error)
+
 
 if __name__ == "__main__":
-    q = Perzeptron([4, 10, 2])
-
-    patterns = parse_training_file("PA-B-train-03.dat")
-    print patterns
-
-    for i in range(1000):
-        q.train(patterns)
-        print q.verify(patterns)
-
+    demo()

@@ -12,11 +12,7 @@ import numpy as np
 import re
 import random
 
-import Transfer
-import Random
-
-from Parsing import parse_training_file
-
+import Util
 
 N_MAX = 101
 M_MAX = 30
@@ -24,7 +20,7 @@ T_MAX = 201
 
 
 class PerzLayer:
-    def __init__(self, N=1, M=1, learning_factor=0.0001, transfer=Transfer.identity_transfer, sampler=Random.uniform_sampler(-2, 2)):
+    def __init__(self, N=1, M=1, learning_factor=0.01, transfer=Util.tanh_transfer, sampler=Util.uniform_sampler(-2, 2)):
         self.__init_transfer(transfer)
         self.__init_learning_factor(learning_factor)
         self.__init_sampler(sampler)
@@ -41,6 +37,16 @@ class PerzLayer:
         return self.out
 
 
+    # Set transfer function.
+    def set_transfer_function(transfer):
+        self.__init_transfer(transfer)
+
+
+    # Set learning_factor.
+    def set_learning_factor(learning_factor):
+        self.__init_learning_factor(learning_factor)
+
+
     # Set delta value for each neuron in this layer.    
     def set_deltas(self, deltas):
         self.deltas = deltas
@@ -53,6 +59,7 @@ class PerzLayer:
         self.__init_pending_weights()
 
 
+    # Increment pending weights.
     def update_pending_weights(self, new_pending_weights):
         self.pending_weights += new_pending_weights
 
@@ -77,8 +84,8 @@ class PerzLayer:
 
     # Create a vectorized version of the transfer function and its derivative.
     def __init_transfer(self, transfer):                
-        if not isinstance(transfer, Transfer.TransferFunction):
-            raise TypeError("Transfer function should be a TransferFunction object!")
+        if not isinstance(transfer, Util.TransferFunction):
+            raise TypeError("Tranfer function should be a TransferFunction object!")
         self.transfer_vec = np.vectorize(transfer.f)
         self.transfer_prime_vec = np.vectorize(transfer.f_prime)
 
@@ -92,9 +99,10 @@ class PerzLayer:
                 + "), learning factor: " + str(self.learning_factor) \
                 + ",\nWeights (first column is BIAS): \n" + str(self.W)
 
+
 class Perzeptron:
     def __init__(self, dims=[1, 1], etas=None, transfers=None):
-        self.__init_layers_from_dimensions(dims, etas, transfers)
+        self.__init_layers_from_dimensions(dims)
 
 
     def __call__(self, X):
@@ -103,17 +111,12 @@ class Perzeptron:
         return X
 
 
-    # Given a list [N1, N2, N3, ...] of dimensions, a list of learning rates,
-    # and a list of transfer functions, create layers N1 -> N2 -> ... with
-    # corresponding learning rates and transfer functions.
-    def __init_layers_from_dimensions(self, dims, etas, transfers):
-        self.layers = []
-        for i in xrange(1, len(dims)):
-            self.layers.append(PerzLayer(dims[i-1], dims[i]))
-
    # Train the Perzeptron once given a list of patterns using back 
    # propagation and the Widrow-Hoff rule.
     def train(self, patterns):
+        if isinstance(patterns, str):
+            patterns = parse_training_file(patterns)
+
         # First gather all weight changes
         for P in patterns:
             if P.N == self.layers[0].N and P.M == self.layers[-1].M:
@@ -125,6 +128,27 @@ class Perzeptron:
         for layer in self.layers:
             layer.apply_pending_weights()
 
+    # Find the average and maximum error for a list of patterns.    
+    def verify(self, patterns):
+        if isinstance(patterns, str):
+            patterns = parse_training_file(patterns)
+
+        total_error = 0.0
+        max_error = 0.0
+        for P in patterns:
+            total_error += Util.quadratic_error(self(P.X), P.Y)
+            if total_error > max_error:
+                max_error = total_error
+
+        return total_error / len(patterns), max_error
+
+
+    # Given a list [N1, N2, N3, ...] of dimensions, create layers N1 -> N2 -> ...
+    def __init_layers_from_dimensions(self, dims):
+        self.layers = []
+        for i in xrange(1, len(dims)):
+            self.layers.append(PerzLayer(dims[i-1], dims[i]))
+
 
     # Train the Perzeptron with a single pattern using back propagation and 
     # the Widrow-Hoff training rule. Does not apply weight changes!
@@ -133,6 +157,7 @@ class Perzeptron:
         self.__update_out_layer(P, Y)
         for i in xrange(1, len(self.layers)):
             self.__update_hidden_layer(P, Y, i)
+
 
     # Find weight changes for the output layer.
     def __update_out_layer(self, P, Y):
@@ -156,6 +181,7 @@ class Perzeptron:
                             (np.dot(out_layer.deltas, prev_out))
         out_layer.update_pending_weights(new_delta_weights)
 
+
     # Find weight changes for the ith hidden layer (counting 
     # backwards from the output layer).
     def __update_hidden_layer(self, P, Y, i):
@@ -175,6 +201,7 @@ class Perzeptron:
         # Compute (sum_k w_hk delta_k)_h for all h as vector
         delta_bar = next_layer.deltas
 
+        # Compute deltas (delta_h = sum_k delta_k w_hk) as vector.
         W_bar = np.transpose(next_layer.W[:, 1:])
         cur_layer.set_deltas(np.multiply(np.dot(W_bar, delta_bar).flatten(), fprime_net)) 
 
@@ -182,10 +209,6 @@ class Perzeptron:
         new_delta_weights = cur_layer.learning_factor * \
                             (np.matmul(cur_layer.deltas, prev_out))
         cur_layer.update_pending_weights(new_delta_weights)
-        
-
-    def verify(self, P):
-        return quadratic_error(self(P.X), P.Y)
 
 
     def __repr__(self):
@@ -195,14 +218,8 @@ class Perzeptron:
         return out
 
 
-# Return half of the quadratic distance X - Y.
-def quadratic_error(X, Y):
-    return 0.5 * np.sum((X - Y)**2)
-
-
 # A training pattern consisting of an input vector and a desired output vector.
 class Pattern:
-    # Construct a pattern from input and desired output.
     def __init__(self, X, Y):
         if X.ndim == 1 and Y.ndim == 1:
             self.X = X
@@ -212,23 +229,41 @@ class Pattern:
             self.M = Y.shape[0]
         
         else:
-            raise ValueError("pattern should be constructed from two vectors. \n")
-    
-    
-    # Return whether the input and output of this pattern are binary.
-    def is_binary(self):
-        return ((self.X == 0) | (self.X == 1)).all() and ((self.Y == 0) | (self.Y == 1)).all()
+            raise ValueError("Pattern should be constructed from two vectors.")
+
+
+    def __repr__(self):
+        return "Pattern (" + str(self.N) + "):" + "X = " + str(self.X) +  ", Y = " + str(self.Y)
+
+
+# Parse a file containing training patterns in the following format:
+# For each pattern, one line should be provided, containing first the entries
+# of the input vector, separated by a single space, then at least 2 spaces,
+# followed by the entries of the desired output vector, separated by at keast one space.
+# The behaviour of this function is undefined for wrongly formatted input files!
+def parse_training_file(filepath):
+    file = open(filepath)
+    lines = file.readlines()
+    patterns = []
+    for line in lines:
+        if line[0] == "#":
+            continue
+        spl = re.split("   +", line)
+        if len(spl) < 2:
+            spl = re.split("\t", line)
+        X = np.array([float(x) for x in re.split(" +", spl[0].strip())])
+        Y = np.array([float(x) for x in re.split(" +", spl[1].strip())])
+        patterns.append(Pattern(X, Y))    
+    return patterns
 
 
 if __name__ == "__main__":
-    q = Perzeptron([2, 3, 4, 4, 10, 4])
+    q = Perzeptron([4, 10, 2])
 
-    X = np.array([0, 1])
-    Y = np.array([3, 2, 1, 0])
-    P = Pattern(X, Y)
-    print q.verify(P)
+    patterns = parse_training_file("PA-B-train-03.dat")
+    print patterns
 
-    for i in range(200):
-        q.train([P])
-        print q.verify(P)
+    for i in range(1000):
+        q.train(patterns)
+        print q.verify(patterns)
 

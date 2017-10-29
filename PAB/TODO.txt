@@ -1,2 +1,3 @@
 TODO:
 	- Pass through etas and transfer funcs from Perzeptron to layers in __init_layers. 
+	- Make a demo or something like that, takig a data file, training, and verifying, and produce plot.

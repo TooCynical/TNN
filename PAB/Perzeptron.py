@@ -271,7 +271,7 @@ def demo():
 
     random.seed(12345)
 
-    print "Initializing Perzepron: "
+    print "Initializing Perzeptron: "
     q = Perzeptron([4, 8, 2])
     print q
     

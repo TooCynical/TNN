@@ -2,10 +2,10 @@
 # Julian W.    	jjwarg@gmail.com  
 #
 # University of Bonn
-# October 2017
+# November 2017
 #
 # Perzepetron.py
-# Implementation of a perzeptron without hidden layers with learning.
+# Implementation of a perzeptron with hidden layers and learning.
 
 
 import numpy as np

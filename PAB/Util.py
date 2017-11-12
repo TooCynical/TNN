@@ -1,3 +1,13 @@
+# Lucas S.   	lfh.slot@gmail.com
+# Julian W.    	jjwarg@gmail.com  
+#
+# University of Bonn
+# November 2017
+#
+# Util.py
+# Utility functions for the implementation of a Perzeptron.
+
+
 import numpy as np
 import random
 

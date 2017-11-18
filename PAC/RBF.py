@@ -18,7 +18,11 @@ class RBFNetwork(object):
 
         def __call__(self, X):
             return np.exp(-squaredDistance(self.pos, X)/(2 * np.power(self.size, 2)))
-        
+    
+    # Create an RBF network with N input neurons, K RBF neurons and M output neurons using
+    # a given set of patterns. The learning rate used for each weight update is identical.
+    # The Gaussian bell function is used as radial function and the usual euclidean norm is
+    # used as distance function.
     def __init__(self, N, K, M, patterns, learningRate=0.05):
         self.N = N
         self.K = K
@@ -46,15 +50,18 @@ class RBFNetwork(object):
         errors = [Util.quadratic_error(self(P.X), P.Y) for P in patterns]
         return sum(errors) / len(patterns), max(errors)
 
+    # Returns the result of applying the network to some input
     def __call__(self, X):
-        return self.weights.dot(np.array([c(X) for c in self.centers]))
+        return self.weights.dot(self.__centerResults(X))
+
+    def __centerResults(self, X):
+        return np.array([c(X) for c in self.centers])
 
     def __trainPattern(self, pattern):
-        intermediateResults = np.array([c(pattern.X) for c in self.centers])
-        Y = self.weights.dot(intermediateResults)
+        centerResults = self.__centerResults(pattern.X)
+        Y = self.weights.dot(centerResults)
         difference = np.array(pattern.Y) - Y
-
-        self.pendingWeights += self.learningRate * np.outer(difference, intermediateResults)
+        self.pendingWeights += self.learningRate * np.outer(difference, centerResults)
 
     def __initializePendingWeightChanges(self):
         self.pendingWeights = np.zeros((self.M, self.K))
@@ -66,16 +73,18 @@ class RBFNetwork(object):
         self.weights += self.pendingWeights
         self.__initializePendingWeightChanges()
 
+    # Input data driven approach to initialize center placements and sizes
     def __initializeCenters(self, patterns):
-        #choose k patterns as random and use their input data as center placements
+        # Randomly choose K patterns and use their input data as center placements.
         centerPositions = [p.X for p in random.sample(set(patterns), self.K)]
 
-        diffs = []
+        # As center sizes use 1/K times the diagonal length of the input space.
+        lengths = []
         for i in range(0, self.N):
-            dimSlice = [p.X[i] for p in patterns]
-            diffs.append(max(dimSlice) - min(dimSlice))
+            dimValues = [p.X[i] for p in patterns]
+            lengths.append(max(dimValues) - min(dimValues))
         
-        longestDiagonal = np.sqrt(sum([np.power(d,2) for d in diffs]))
+        longestDiagonal = np.sqrt(sum([np.power(l,2) for l in lengths]))
 
         self.centers = [self.Center(p, longestDiagonal/self.K) for p in centerPositions]
 
@@ -124,10 +133,10 @@ def demo():
     patterns = parse_training_file("training.dat")
     testData = parse_training_file("test.dat")
 
-    n = RBFNetwork(4, 6, 2, patterns, 0.2)
+    n = RBFNetwork(4, 6, 2, patterns)
 
     plotfile = open("learning.curve", 'w')
-    for dummy in range(25):
+    for dummy in range(50):
         n.train(patterns)
         error = n.verify(patterns)[0]
         plotfile.write(str(error) + "\n")

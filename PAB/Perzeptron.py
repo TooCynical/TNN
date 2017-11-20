@@ -137,9 +137,10 @@ class Perzeptron:
         total_error = 0.0
         max_error = 0.0
         for P in patterns:
-            total_error += Util.quadratic_error(self(P.X), P.Y)
-            if total_error > max_error:
-                max_error = total_error
+            new_error = Util.quadratic_error(self(P.X), P.Y)
+            total_error += new_error
+            if new_error > max_error:
+                max_error = new_error
 
         return total_error / len(patterns), max_error
 

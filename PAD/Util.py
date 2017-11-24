@@ -11,17 +11,32 @@
 import numpy as np
 import random
 
-
 def exp_decay(y_0, y_final, x_final):
 	def out(x):
 		return np.exp(-3 * (x / x_final)) * (y_0 - y_final) + y_final
 	return out
+
+
+def exp_topo(size):
+     size2 = float(size)**2
+     def out(x):
+          return np.exp(-0.5 * (x**2 / size2))
+     return out
+
 
 def uniform_sampler(x_min, x_max):
 	def out():
 		return random.uniform(x_min, x_max)
 	return out
 
+
+def uniform_sampler2D(x_min, x_max, y_min, y_max):
+    u1 = uniform_sampler(x_min, x_max)    
+    u2 = uniform_sampler(y_min, y_max)    
+    
+    def out():
+        return np.array([u1(), u2()])
+    return out
 
 # Return half of the quadratic distance X - Y.
 def quadratic_error(X, Y):

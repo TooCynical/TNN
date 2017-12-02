@@ -61,6 +61,7 @@ class SOM:
         # Update t.
         self.t += 1
         
+        
     # Returns the index of the winning center for given input, as well as the 
     # distance from this center to the input.
     def winner(self, X):
@@ -72,6 +73,7 @@ class SOM:
                 min_distance = new_distance
                 best_center_index = index
         return best_center_index, min_distance
+        
         
     # Returns the locations of each center.
     def center_locs(self):
@@ -112,6 +114,7 @@ class SOM:
         for index in self.grid_indices:
             out += str(self.centers[index]) + "\t" + str(index) + "\n"
         return out
+
 
 # An MSOM is basically just a container for multiple SOMS, which decides
 # which SOM should learn a certain data point when given one.

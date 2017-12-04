@@ -19,5 +19,5 @@ Documentation:
 
 Plotting
     When running the demo, an image is displayed showing the state of the MSOM
-    after training is completed. This image for one particular run is also
-    included in the folder as 'plot.png'.
+    after training is completed. This requires python-tk and is therefore disabled by default.
+    This image for one particular run is also included in the folder as 'plot.png'.

@@ -46,6 +46,7 @@ class ROLFNet:
 
 
     def __create_new_neuron(self, X):
+        print "Created new ROLFNeuron..."
         new_neuron = ROLFNeuron(self.N, X, sigma=self.__sigma())
         self.neurons.append(new_neuron)
 
@@ -181,9 +182,12 @@ class ROLFNeuron:
 def demo():
     N = ROLFNet(4)
     for X in Util.parse_training_file("test.data"):
+        print "Learning " + str(np.array(X)) + "..."
         N.learn(np.array(X))
 
+    print N
     N.dump_center_coords_and_sizes("test.out")
+    print "center locations dumped to test.out"
 
 
 if __name__=="__main__":
